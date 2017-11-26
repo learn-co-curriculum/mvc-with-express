@@ -1,4 +1,4 @@
-# Using EJS Templates in Express
+# MVC with Express
 
 ## Objectives
 
