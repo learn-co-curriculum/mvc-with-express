@@ -2,345 +2,197 @@
 
 ## Objectives
 
-1. Understand what an EJS template is and how it generates HTML.
-2. Use `<%= %>` to embed the return value of a Javascript expression in HTML.
-3. Render an EJS template from an Express handler using `resp.render()`
-4. Pass data from an Express handler into EJS via `resp.render()`
-5. Use data from an Express handler in an EJS template with `<%= %>`.
-6. Iterate through an array in an EJS template using `<% %>` to generate HTML.
+1. Understand the Components of MVC
+2. Organize an Express application into MVC
+3. Build a Javascript Controller
+4. Attach an Action function to a Controller
+5. Route an Request to a Controller Action
+5. Integrate a Model into a Controller Action
+6. Render a corresponding view for a controller action.
 
 _A [video lecture](#video-lecture) covering this content is below the README_
 
-**To play with these examples, you have to `git clone git@github.com:learn-co-curriculum/using-ejs-in-express.git` into the Learn IDE or your environment. Then, `cd using-ejs-in-express` to work in the project folder. Run `npm install` too.**
+## Following Along with Examples
 
-## EJS Templates
+To play with these examples, you have to:
 
-Even with Express' simplicity of request routing through handler functions, our handler functions can get pretty messy if we're sending back a full HTML document and the response.
+`git clone github.com:learn-co-curriculum/mvc-with-express.git` into the Learn IDE or your environment. 
 
-**File: [expressMessyHTML.js](https://github.com/learn-co-curriculum/using-ejs-in-express/blob/master/expressMessyHTML.js)**
-```js
-const express = require('express')
-const app = express()
+Then, `cd mvc-with-express` to work in the project folder. 
 
-app.get('/', function(req, resp){
-  const html = `
-    <!doctype html>
-    <html>
-      <head>
-        <title>Let's Use EJS</title>
-      </head>
-      <body>
-        <h1>Learning To Use EJS</h1>    
-      </body>
-    </html>
-  `
+Run `npm install` too.
 
-  resp.send(html)
-})
+## What is Model-View-Controller?
 
-app.listen(3000)
-```
+As our applications grew increasingly complex, moving from simple I/O driven interfaces like the Command Line, to Graphical-User-Interfaces (GUI) and Web Applications, our code grew more complex in parralel. 
 
-Even with a relatively small HTML document, putting it directly in the handler function already looks messy. We have two languages in 1 function and if we needed to do anything dynamic or have 100 of lines of HTML, it would get worse, and fasts.
+Instead of just managing a running process taking in text input, spitting out text output, we were suddenly managing windows, graphics, colors, and gestures like "Click" and "Drags", multiple-application states, and more. These requirements meant the way we architected our code needed to change.
 
-Instead of writing HTML within a handler, we use Express to render templates of HTML where we can embed Javascript to create dynamic HTML.
+Architecutre is how we organize the code in our application. It isn't speaking to a particular language, but rather, general, abstract, ideas of what works well in code. The principals we've discovered are not hard-and-fast rules, they are open to interpretation, and they will continue to evolve. Every developer has opinions on what is best and it's rarely a question of right or wrong or better or worse, it's mostly situational and personal.
 
-## What's a Template?
+One of the most timeless architectual patters for building complex applications is [Model-View-Controller](https://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93controller). In essense, MVC is a pattern of seperating the code in our application into at least 3 major types of components, Models, Views, and Controllers. By decoupling the logic required to make an application, MVC allows for easier and conventional code organization, parralel development by multiple developers, and effecient code-reuse. 
 
-A template is a document that contains the structure and content for the final output, but also contains sections that need to be interpreted and compiled in order to generate the final document. They are sort of like "Mail Merges".
+![MVC in a Nutshell](https://cl.ly/nvZF/Image%202017-11-26%20at%204.20.45%20PM.png)
 
-A Hypothetical Template Example:
+### Models
 
-```
-Dear <FirstName>,
+Models are traditionally the central component of the application's "[problem domain](https://en.wikipedia.org/wiki/Problem_domain)". Models represent the things in our application. In a "ToDo List" application, you would imagine having a thing in your application called a "ToDo List". Those lists would also have things called "Items", representing the things on the list. Models are generally implemented by creating a Class, with the instances being the individual manifestations of each unique concept.
 
-Congratulations on your <Occassion>!
+Recently, Models are also being used to encapsulate lots of Database/Peristance logic. They are responsible for things like finding a particular user, finding the items in a todo list, and saving a new blog post. We see this in the Object-Relational-Mapper (ORM) design implemented into many Model layers in frameworks, like ActiveRecord in Rails.
 
-We send our love to:
+Models don't care about the "Interface" that uses them - whether the applicatoin is being used by a person in a browser, an iPhone app, a command line, or via an API, Models are considered interface independent.
 
-<For Each FamilyMemberName in FamilyMembers>
-  <FamilyMemberName>
-<End For Each>
+### Controllers
 
-Mazal Tov!
-```
+Controllers are sort of like traffic cops, or brokers, taking input or data from one place, generally the person using our application, sending it to another place, generally our models, and then deciding what to do next. Controllers manage the relationship between the interface that person is using for our application, the models that contain the domain logic, and the views that present data back to the person in the form of something they can see, whether it plain text as in a command-line or HTML in the form of a web application.
 
-In this hyptothetical template format, variables and logic are defined by being enclosed in `< >`. So `<FirstName>` isn't literally those sequence of characters, but rather represents a variable `FirstName` meant to be injected into the document. The section with some logic is:
+### Views
+
+Views are responsible for presenting the end result of an interaction between a person and our application. Views are basically "how things look." In a web applications, views are our HTML templates and the final HTML we deliver to the browser. They know the littlest about the rest of the code and are generally devoid of much application logic besides how things should look.
+
+### MVC Metaphor - A Restaurant 
+
+Sometimes its useful to think of architectual patterns in terms of metaphors. MVC could be thought of as a restaurant, where every roll in the restaurant has a discrete responsibility.
+
+Models are like Chefs. The most important part of the restaurant, they define the meals served. They know everything there is to know about cooking. They don't care who is eating or how the food gets to them, take out or dining in. They just make food.
+
+Controllers are like Waiters. Nothing works without them. They take orders from people, give those orders to chefs, and coordinate the travel of the meal from kitchen to table. 
+
+Views are...well, like the table or plate itself. Maybe [Saucier](https://en.wikipedia.org/wiki/Saucier) is a better term, but they are responsible for making sure everything looks good, the decor of the restaurant, the table and silverware, and perhaps even the platting.
+
+## MVC in Express
+
+Out of the box, Express is not an MVC Framework. But we're going to turn it into one so that when you do learn an MVC Framework, you'll understand that patterns and the components.
+
+First, let's talk about a general MVC Express Application Structure
 
 ```
-<For Each FamilyMemberName in FamilyMembers>
-  <FamilyMemberName>
-<End For Each>
+express-todomvc/
+- bin/
+- config/
+- controllers/
+- db/
+- models/
+- public/
+- test/
+- views/
+- app.js
 ```
 
-This would represent a loop, saying that there was a collection of `FamilyMembers` and for each one, print out the `FamilyMemberName`.
+This is the general folder structure we'll use for our MVC Express applications.
 
-Given the following data:
+### `bin` directory
 
-```
-FirstName = "Avi"
-Occassion = "Graduation"
-FamilyMembers = ["Sarah", "Jonathan"]
-```
+Inside the `bin` directory we're going to put any of our scripts that execute the application. Generally we'll have a `bin/www` javascript file that starts up the web application server. We might also have a `bin/console` javascript file that loads our environment and application code and provides a Node console for us to play with it.
 
-The template would generate:
+### `config` directory
 
-```
-Dear Avi,
+Inside the `config` directory we will have anything that configures the behavoir of the application. The most important file in there is going to be `config/db.js` that loads our Database connection.
 
-Congratulations on your Graduation!
+### `controllers` directory
 
-We send our love to:
+You guessed it, we will put all of our controllers inside `controllers`, naming them in plural for the resource ("thing") they deal with, like `TodoListsController.js` for dealing with `TodoLists` or a `SiteController.js` for dealing with the main pages in our site, like a homepage or an about page. We use [PascalCase](https://en.wikipedia.org/wiki/PascalCase) for Controller naming.
 
-Sarah
-Jonathan
+### `db` directory
 
-Mazal Tov!
-```
+Our actual database files will go here. We also might put database migration files in this directory, but we're not going to deal too much with that yet.
 
-If the data changed, so would the produced final content. Express supports many template libraries for generating HTML, [EJS](http://www.embeddedjs.com) and [Jade](http://jade-lang.com/) are popular ones, we're going to learn about EJS.
+### `models` directory
 
-## EJS Templates
+You guessed again, in the `models` directory we put models. Models are convetionally named in singular in PascalCase, so things like a `TodoList.js` or a `User.js`.
 
-EJS templates are files that contain text, generally HTML, along with special "EJS" tags that allow for you to embed a Javascript expression whose evaluation (return value) will be added to the template when compiled.
+### `public` directory
 
-The two EJS tags you need to learn about are:
+Any asset that can be served without any interpretation, like `stylesheets`, or `images`, or even client-side `javascripts` go in here. In fact, it's common to have a directory for each of those.
 
-* `<%= %>` - Used to output the return value of an expression into the document, e.g, `<%= 1+1 %>` will add `2` to the document.
-* `<% %>` - Used to evaluate an expression, but not add the return value to the document, e.g, `<% const name = "Avi"%>` defines a `name` variable, but does not add the return value of the expression (in this case, `undefined`), to the document.
+### `test` directory.
 
-We'll be putting our EJS templates in `views` directory for all our Express applications. 
+Yep, our tests go in there.
 
-**File: [views/firstEJSTemplate.ejs](https://github.com/learn-co-curriculum/using-ejs-in-express/blob/master/views/firstEJSTemplate.ejs)**
-```ejs
-<!doctype html>
-<html>
-  <head>
-    <title>Let's Use EJS</title>
-  </head>
-  <body>
-    <h1>Learning To Use EJS</h1>
-    <p>The time now is: <%= new Date() %></p>
-  </body>
-</html>
-```
+### `views` directory.
 
-The goal of this template is to embed the current date and time each time the template is compiled. If we compiled it right now we'd get:
+Our views, organized by the controller that generally renders them, so with a `SiteController`, we would put the views relating to the about page in `site/about.ejs` or for the homepage, `site/index.ejs`, or for a `TodoListsController` we'd have `todo_lists/index.ejs` and `todo_lists/new.ejs`, where the folders are named in [snake_case](https://en.wikipedia.org/wiki/Snake_case).
 
-```html
-<!doctype html>
-<html>
-  <head>
-    <title>Let's Use EJS</title>
-  </head>
-  <body>
-    <h1>Learning To Use EJS</h1>
-    <p>The time now is: 2017-11-24T18:39:14.245Z</p>
-  </body>
-</html>
-```
+### `app.js`
 
-If we then compiled it again in 10 minutes, we'd get:
+This is our main application file, defining the `app` constant from Express and generally handling our main routing responsibility, though you could separate that out into `config/routes.js` if it was very big.
 
-```html
-<!doctype html>
-<html>
-  <head>
-    <title>Let's Use EJS</title>
-  </head>
-  <body>
-    <h1>Learning To Use EJS</h1>
-    <p>The time now is: 2017-11-24T18:49:14.245Z</p>
-  </body>
-</html>
-```
+### A Note About Convetions
 
-Everyime we compile the template, the line `<%= new Date() %>` would actually evaluate and return the current date and time. That's what makes EJS powerful, we can embed code and logic into our template to generate dynamic HTML.
+Outlined above is just one interpretation that we are going to use for MVC with Express. It is possible to organize an MVC application in 100 different ways with 100 different conventions on how to name your files, where to put different components, etc. This is just the one we're going to use, it's good for teaching purposes, it's conventional and mirrors the Ruby on Rails framework. It isn't the best, but it's good enough. Learn one convention, then you can learn others. And don't listen to anyone telling you "that's not how to do MVC." There's no one right way to anything in life, why would programming be any different?
 
-## Using EJS with Express
+## Controllers in Express
 
-To use EJS with Express, you have to add `ejs` to your node application with `npm add ejs`. Once the node application has `ejs` in the `package.json`, you have to then tell your express application that your template rendering engine is EJS and the location of your templates.
+In MVC Web Applications, the first thing to understand is the interaction between an HTTP Request and our application, specifically, the controllers.
 
-**File: [expressWithEJS.js](https://github.com/learn-co-curriculum/using-ejs-in-express/blob/master/expressWithEJS.js)**
-```js
-const express = require('express')
-const app = express()
-const path = require('path');
-
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'ejs');
-
-app.get('/', function(req, resp){
-  resp.render('firstEJSTemplate')
-})
-
-app.listen(3000)
-```
-
-The lines at the top are how we configure the express application, `app`, to use EJS.
+A controller in our application is just a regular javascript object. We might have a `SiteController` defined in `controllers/SiteController.js`.
 
 ```js
-const express = require('express')
-const app = express()
-const path = require('path');
+const SiteController = {}
 
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'ejs');
+SiteController.Index = function(req, resp){
+  resp.send("This is the Home Page")
+}
+
+SiteController.About = function(req, resp){
+  resp.send("This is the About Page")
+}
+
+module.exports = SiteController
 ```
 
-We use the `path` package to get the current directory path and join it with the `views` directory to create a full path to the views directory to use for this application - `app.set('views', path.join(__dirname, 'views'));`
+The first line defines the contoller constant as a POJO (Plain Old Javascript Object), `SiteController`. Each HTTP request this controller is intended to deal with will be represented as a function attached to the `SiteController`. We call these functions "actions" in the context of MVC. The controller `SiteController` has two actions, `Index` and `About`, each of which is a function intended to be an Express route handler, thus accepting the two arguments, `req` and `resp`.
 
-The next line, `app.set('view engine', 'ejs');` sets the application's view engine to `ejs`. With that we get access to a new function available on our response object passed to a route handler function: 
+We group related HTTP requests together in the form a contoller and the individual the functions that will handle each request.
+
+Once our controller is defined, we need to make sure that the appropriate HTTP requests and URL are routed to these actions.
+
+In `app.js` for this example we'd see:
 
 ```js
-app.get('/', function(req, resp){
-  resp.render('firstEJSTemplate')
-})
+const SiteController = require("./controllers/SiteController.js")
+
+app.get("/", SiteController.Index)
+app.get("/about", SiteController.About)
 ```
 
-`resp.render('templateFile)` tells the response object to render (or compile) the template, `templateFile`, located in the `views` directory and send the generated document as the response to the HTTP request. Since our template is `views/firstEJSTemplate.ejs` we tell the response to `resp.render('firstEJSTemplate')`. 
+We are passing the actions of the controller, into the app to become the handlers for those requests. That is all there is to connecting your Express routes to controller actions.
 
-**Note: We leave out the file extension `.ejs` during the `render()` call. We also don't have to mention the `views` directory as we already told Express to always look inside views.**
+1. Create the controller object in a file in `controllers`. Don't forget to export the object with `module.exports`.
+2. Attach functions to the object to act as handlers for each HTTP request.
+3. Require the controller in `app.js`.
+4. Draw your routes, passing each request to a handler function that is the controller's action.
 
-If we start this application with `node expressWithEJS.js` and loaded the site in our browser, we'd see:
+## Rendering Views in a Controller Action
 
-![Site with EJS](https://cl.ly/nv7A/Image%202017-11-24%20at%201.49.33%20PM.png)
+Now that we know how to define a controller, build actions onto it as express handler functions, and route HTTP requests to a controller action, let's just make sure we can render views in our controller actions.
 
-## Passing Data from a handler function to an EJS Template
+What's nice about MVC and most architectual patterns, is that once you get the concept and the crucial implementation change, the rest is generally the same.
 
-Generally the data we want to embed into our HTML is coming from Models or other data sources loaded during the event handler. Imagine:
+A controller action is just a function defined on an object meant to be an express handler. Once defined, that function behaves just like any express handler, it accepts a `req` and `resp` argument and must ultimately send a response back. Whether that function is defined on a controller or passed to the express route directly doesn't matter.
+
+Rendering a view in a controller action is the same as rendering a view directly in the route handler, just use `resp.render` and all the same rules and logic apply.
 
 ```js
-app.get('/', function(req, resp){
-  const welcomeText = "Welcome to EJS"
-  const favoriteThings = [
-    "NYC",
-    "Music",
-    "Code",
-    "Movies"
-  ]
+const SiteController = {}
 
-  resp.render('dataTemplate')
-})
+SiteController.Index = function(req, resp){
+  resp.render("site/index")
+}
+
+SiteController.About = function(req, resp){
+  const welcomeText = "Welcome to the About Page!"
+  resp.render("site/about", {welcomeText: welcomeText})
+}
+
+module.exports = SiteController
 ```
 
-In **[views/dataTemplate.ejs](https://github.com/learn-co-curriculum/using-ejs-in-express/blob/master/views/dataTemplate.ejs)** we'd probably want to do something like:
-```ejs
-<!doctype html>
-<html>
-  <head>
-    <title>Let's Use EJS</title>
-  </head>
-  <body>
-    <h1><%= welcomeText %></h1>
-    <h2>My Favorite Things</h2>
-    <ul>
-      <% favoriteThings.forEach(function(thing){ %>
-        <li><%= thing %></li>
-      <% }) %>
-    </ul>
-  </body>
-</html>
-```
+It is a convention to have our views for a controller live within a subdirectory in `views` named after the controller. `SiteController` would generally render views in `views/site`. `TodoListsController` might render views in `views/todo_lists`, but you're going to be explicit with your render paths relative to `views`, so just make sure it's an accurate path to the EJS template you intended.
 
-In an effort to generate:
+## Integarting Models into Controllers
 
-```html
-<!doctype html>
-<html>
-  <head>
-    <title>Let's Use EJS</title>
-  </head>
-  <body>
-    <h1>Welcome to EJS</h1>
-    <h2>My Favorite Things</h2>
-    <ul>
-      <li>NYC</li>
-      <li>Music</li>
-      <li>Code</li>
-      <li>Movies</li>
-    </ul>
-  </body>
-</html>
-```
 
-The handler function defined two variables, `welcomeText` and `favoriteThings`. The template should be able to access the data defined in the handler function in the form of local Javascript variables. To achieve this and have the variables defined in the handler function accessible in the view template, we must explicitly pass them in via the `resp.render()` function. `resp.render()` takes two arguments, the first the template file to render. The second argument is a javascript object whose keys become local variables in the view set to the key's value in the object.
-
-**File: [ejsWithData.js](https://github.com/learn-co-curriculum/using-ejs-in-express/blob/master/ejsWithData.js)**
-```js
-const express = require('express')
-const app = express()
-const path = require('path');
-
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'ejs');
-
-app.get('/', function(req, resp){
-  const welcomeText = "Welcome to EJS"
-  const favoriteThings = [
-    "NYC"
-    "Music",
-    "Code",
-    "Movies"
-  ]
-  resp.render('dataTemplate', {
-    viewVariable: "I'm available in the view as 'viewVariable'"
-    welcomeText: welcomeText,
-    favoriteThings, favoriteThings
-  })
-})
-
-app.listen(3000)
-```
-
-We pass render a javascript object with three keys, `viewVariable`, `welcomeText`, and `favoriteThings`. Those keys' values, a String, a variable referencing a string, and a variable referencing an Array, become available in the view as local variables. 
-
-If you wrote `<%= viewVariable %>` in `dataTemplate.ejs`, our HTML would include: `"I'm available in the view as 'viewVariable'"`.
-
-You could imagine it being a little neater by seperating the creation of the object you're passing to the view as its own variable:
-
-```js
-app.get('/', function(req, resp){
-  const welcomeText = "Welcome to EJS"
-  const favoriteThings = [
-    "NYC"
-    "Music",
-    "Code",
-    "Movies"
-  ]
-  const viewData = {
-    viewVariable: "I'm available in the view as 'viewVariable'"
-    welcomeText: welcomeText,
-    favoriteThings, favoriteThings
-  }
-
-  resp.render('dataTemplate', viewData)
-})
-```
-
-That's how you pass data to the view.
-
-### Iterating Through Data in the View
-
-Let's look at one part of the view that's a bit more complex. 
-
-```ejs
-<ul>
-  <% favoriteThings.forEach(function(thing){ %>
-    <li><%= thing %></li>
-  <% }) %>
-</ul>
-```
-
-What we're doing here is creating an `li` for each element inside of `favoriteThings` array. 
-
-Since the first expression to achieve this is the loop construct, `forEach`, we don't use `<%= %>` but rather `<% %>`. We use `forEach` on the array to start a loop and enclose the entire opening in `<% %>` - `<% favoriteThings.forEach(function(thing){ %>`. 
-
-The template engine begins the loop and will include the next line, outside of any EJS tags, once for each element in the array, thereby adding 3 `li`s to our final HTML. Within that, we can still use EJS to include the value of each element through the argument we pass to the `forEach` callback function, named `thing` in this example. `<li><%= thing %></li>`. 
-
-Finally, we end the loop by closing the callback function and the `forEach`. `<% }) %>`
-
-Looping is a bit tricky but super important, so make sure to practice it.
 
 ## Video Lecture
 
